@@ -1,0 +1,69 @@
+<main class="main-container">
+  <div class="card">
+    <header class="header">
+      <div class="logo-badge">🌱</div>
+      <h1 class="project-title">{{ title }}</h1>
+      <p class="project-subtitle">{{ subtitle }}</p>
+    </header>
+
+    <section class="status-section">
+      <div class="alert-box success-box">
+        <span class="icon">✨</span>
+        <span class="message">Application setup successful.</span>
+      </div>
+
+      <div class="connection-card" [class.connected]="isConnected()" [class.offline]="!isConnected() && !isChecking()">
+        <div class="status-indicator">
+          <span class="status-dot" [class.pulse]="isChecking()"></span>
+          <span class="status-text">
+            @if (isChecking()) {
+              Checking backend connection...
+            } @else if (isConnected()) {
+              Backend Connected
+            } @else {
+              Backend Offline
+            }
+          </span>
+        </div>
+
+        @if (isConnected() && healthData()) {
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="label">API Application:</span>
+              <span class="value">{{ healthData()?.application }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">API Version:</span>
+              <span class="value">v{{ healthData()?.version }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Service Status:</span>
+              <span class="value badge-ok">{{ healthData()?.status }}</span>
+            </div>
+          </div>
+        } @else if (!isChecking()) {
+          <p class="offline-note">
+            The FastAPI backend is not responding on <code>http://localhost:8000/api/health</code>. Please start the backend server.
+          </p>
+        }
+
+        <div class="action-footer">
+          <button class="btn-refresh" (click)="checkBackendHealth()" [disabled]="isChecking()">
+            @if (isChecking()) {
+              Checking...
+            } @else {
+              ↻ Refresh Connection
+            }
+          </button>
+          @if (lastCheckedTime()) {
+            <span class="timestamp">Last check: {{ lastCheckedTime() }}</span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer-info">
+      <span>AgriPulse • Level 1: Environment & Foundation Setup</span>
+    </footer>
+  </div>
+</main>
