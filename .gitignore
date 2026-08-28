@@ -54,24 +54,28 @@ coverage.xml
 *.py,cover
 htmlcov/
 
-# Machine Learning Models, Checkpoints & Datasets
-# Exclude raw data files and binary model weights (track .gitkeep)
-ml/**/data/*.csv
-ml/**/data/*.xlsx
-ml/**/data/*.json
-ml/**/data/*.zip
-ml/**/data/*.tar.gz
-ml/**/model/*.h5
-ml/**/model/*.keras
-ml/**/model/*.pkl
-ml/**/model/*.joblib
-ml/**/model/*.pt
-ml/**/model/*.pth
-ml/**/model/*.onnx
-ml/**/results/*.png
-ml/**/results/*.jpg
-ml/**/results/*.svg
-ml/**/results/*.pdf
+# Machine Learning Datasets & Binary Artifacts
+# Exclude raw & processed data files and binary model weights (track .gitkeep and README.md)
+*.csv
+*.xlsx
+*.parquet
+*.jsonl
+*.zip
+*.tar.gz
+*.h5
+*.keras
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+
+# EDA Visualization Plots
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
 
 # Node / Angular
 frontend/agripulse-ui/node_modules/
@@ -110,5 +114,7 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 
-# Always preserve .gitkeep files
+# Always preserve structural files
 !.gitkeep
+!README.md
+!*.md
