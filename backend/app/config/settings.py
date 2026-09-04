@@ -1,5 +1,5 @@
 from typing import List, Union
-from pydantic import field_validator
+from pydantic import field_validator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,12 +11,12 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
-    API_V1_STR: str = "/api"
+    API_V1_STR: str = "/api/v1"
 
-    # Security & Auth placeholders
-    JWT_SECRET: str = "development_secret_key_change_in_production"
+    # Security & Auth settings
+    JWT_SECRET_KEY: str = Field("development_secret_key_change_in_production_98234", alias="JWT_SECRET")
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
     # PostgreSQL Database URL
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/agripulse_db"
@@ -38,6 +38,7 @@ class Settings(BaseSettings):
         env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
         case_sensitive=True
     )
 

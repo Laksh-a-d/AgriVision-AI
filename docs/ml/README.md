@@ -10,8 +10,8 @@
 | Module | Model Family | Task | Current Status | Validation Status | Production Artifact |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **1. Crop Recommendation** | **LSTM Neural Network** | Multiclass Classification & Top-5 Ranking | **IMPLEMENTED (COMPLETE)** | 98.48% Test Accuracy, 100% Top-5 Acc | `crop_recommendation_lstm.keras` |
-| **2. Crop Price Forecasting** | LSTM / BiLSTM | Daily & Multi-Step Spot Price Forecasting | **NOT IMPLEMENTED** (Dataset Ready) | Dataset Cleaned & Resampled (Level 2) | Pending Level 3/4 |
-| **3. Crop Yield Forecasting** | Deep Regressor / Random Forest | Regional Acreage & Yield (Tonnes/ha) Estimation | **NOT IMPLEMENTED** (Dataset Ready) | Dataset Cleaned & Resampled (Level 2) | Pending Level 3/4 |
+| **2. Crop Price Forecasting** | **Time-Series LSTM** | Multi-Step Mandi Spot Price Forecasting | **IMPLEMENTED (COMPLETE)** | 6.47% Test MAPE, $R^2 = 0.9375$ | `crop_price_lstm.keras` |
+| **3. Crop Yield Forecasting** | **Deep Neural Network Regressor** | Regional Acreage & Yield (Tonnes/ha) Estimation | **IMPLEMENTED (COMPLETE)** | 1.697 Test MAE, $R^2 = 0.9165$ | `crop_yield_dnn.keras` |
 
 ---
 
@@ -31,18 +31,37 @@
 
 ---
 
-## 2. Crop Price Forecasting AI Module (Upcoming)
+## 2. Crop Market Price Forecasting AI Module (Implemented)
 
 - **Dataset**: `ml/price_forecasting/data/raw/agmarknet_commodity_prices.csv` ($20,500$ Agmarknet mandi records)
-- **Scope**: Multi-year wholesale spot prices across 78 commodities and 22 mandis.
-- **Preprocessing Status**: Completed (30-day sliding window sequences generated, strictly chronological).
-- **Target Models**: LSTM / GRU / Bidirectional LSTM.
+- **Primary Benchmark Series**: **Onion (Nashik APMC Mandis / Lasalgaon Hub)** ($6,575$ continuous daily points, $4,581$ Train, $982$ Val, $982$ Test)
+- **Target**: `Modal_Price` (INR / Quintal)
+- **Architecture**: Time-Series LSTM (`Input(30, 1)` $\rightarrow$ `LSTM(64)` $\rightarrow$ `Dense(32)` $\rightarrow$ `Dense(1)`)
+- **Performance**:
+  - Test MAE: **₹129.81 / Quintal**
+  - Test RMSE: **₹253.07 / Quintal**
+  - Test MAPE: **6.47%**
+  - Test $R^2$: **0.9375**
+- **Forecast Horizons**: 1-Day, 7-Day, 30-Day recursive projection with trend direction and percentage change.
+- **Inference Module**: `ml/price_forecasting/model/predict.py`
+- **Documentation**:
+  - [Model Card](file:///D:/FINAL%20FINAL%20YEAR%20PROJECT/docs/ml/PRICE_FORECASTING_MODEL.md)
+  - [Experiment Log](file:///D:/FINAL%20FINAL%20YEAR%20PROJECT/docs/ml/PRICE_FORECASTING_EXPERIMENTS.md)
 
 ---
 
-## 3. Crop Yield Forecasting AI Module (Upcoming)
+## 3. Crop Yield Forecasting AI Module (Implemented)
 
-- **Dataset**: `ml/yield_forecasting/data/raw/crop_production.csv` ($242,361$ cleaned historical district-level records)
-- **Scope**: Production volume and acreage from 1997 to 2015 across 33 Indian states.
-- **Preprocessing Status**: Completed (Yield computed in Tonnes/Hectare, chronological threshold split).
-- **Target Models**: Deep Neural Regressor / Gradient Boosted Trees.
+- **Dataset**: `ml/yield_forecasting/data/raw/crop_production.csv` ($242,361$ cleaned historical district-level records; $84,183$ benchmark records across 10 major crops)
+- **Target**: `Yield = Production / Area` (Tonnes / Hectare)
+- **Features**: `State_Name`, `District_Name`, `Crop`, `Season`, `Area`, `Crop_Year` (**Zero Leakage: `Production` strictly excluded from inputs**)
+- **Architecture**: Deep Neural Network Regressor (`Input(662)` $\rightarrow$ `Dense(128)` $\rightarrow$ `Dense(64)` $\rightarrow$ `Dense(32)` $\rightarrow$ `Dense(1)`)
+- **Performance**:
+  - Test MAE: **1.697 Tonnes / Hectare**
+  - Test RMSE: **5.478 Tonnes / Hectare**
+  - Test $R^2$: **0.9165**
+  - Test MedAE: **0.537 Tonnes / Hectare**
+- **Inference Module**: `ml/yield_forecasting/model/predict.py`
+- **Documentation**:
+  - [Model Card](file:///D:/FINAL%20FINAL%20YEAR%20PROJECT/docs/ml/YIELD_FORECASTING_MODEL.md)
+  - [Experiment Log](file:///D:/FINAL%20FINAL%20YEAR%20PROJECT/docs/ml/YIELD_FORECASTING_EXPERIMENTS.md)
