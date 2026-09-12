@@ -5,10 +5,12 @@ from sqlalchemy.orm import Session
 from app.schemas.crop import CropRecommendationRequest, CropRecommendationResponse
 from app.schemas.price import PriceForecastRequest, PriceForecastResponse
 from app.schemas.yield_ import YieldForecastRequest, YieldForecastResponse
+from app.schemas.decision import DecisionRecommendationRequest, DecisionRecommendationResponse
 
 from app.services.crop_recommendation_service import CropRecommendationService
 from app.services.price_forecasting_service import PriceForecastingService
 from app.services.yield_forecasting_service import YieldForecastingService
+from app.services.decision_service import DecisionService
 from app.services.prediction_service import PredictionService
 
 logger = logging.getLogger("agripulse.services.ml_orchestrator")
@@ -97,6 +99,17 @@ class MLService:
                 logger.warning(f"Failed to record yield forecast history: {e}")
 
         return response
+
+    @staticmethod
+    def recommend_decision(
+        request: DecisionRecommendationRequest,
+        db: Optional[Session] = None,
+        user_id: Optional[int] = None
+    ) -> DecisionRecommendationResponse:
+        """
+        Executes Agricultural Decision Support orchestration and records result in prediction history.
+        """
+        return DecisionService.recommend(request=request, db=db, user_id=user_id)
 
 
 # Global instance

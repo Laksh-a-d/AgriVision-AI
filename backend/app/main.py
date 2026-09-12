@@ -1,4 +1,4 @@
-﻿import time
+import time
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status, HTTPException
@@ -68,6 +68,14 @@ tags_metadata = [
         "description": "User-isolated historical inference log retrieval, pagination, and record deletion.",
     },
     {
+        "name": "Decision Support AI",
+        "description": "Integrated multi-modal agricultural decision engine synthesizing crop, price, and yield models.",
+    },
+    {
+        "name": "MLOps & System Monitoring",
+        "description": "Model registry, live performance telemetry, data drift, and prediction distribution analytics.",
+    },
+    {
         "name": "System",
         "description": "Health checks and ML runtime diagnostic endpoints.",
     }
@@ -79,7 +87,7 @@ app = FastAPI(
     version=settings.APP_VERSION,
     description=(
         "Production REST API for AgriPulse: Providing deep learning-powered crop recommendation, "
-        "crop market price forecasting, regional crop yield estimation, and secure user management."
+        "crop market price forecasting, regional crop yield estimation, decision support, and secure user management."
     ),
     openapi_tags=tags_metadata,
     docs_url="/docs",
@@ -96,6 +104,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from app.services.metrics_service import metrics_collector
+
+@app.middleware("http")
+async def telemetry_middleware(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration_ms = round((time.time() - start_time) * 1000.0, 2)
+    metrics_collector.record_request(request.url.path, response.status_code, duration_ms)
+    return response
 
 
 # Centralized Error Handlers

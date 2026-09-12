@@ -1,50 +1,25 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApiService } from './services/api.service';
-import { HealthResponse } from './models/health.model';
+import { RouterOutlet } from '@angular/router';
+import { NavbarComponent } from './layout/navbar/navbar.component';
+import { SidebarComponent } from './layout/sidebar/sidebar.component';
+import { FooterComponent } from './layout/footer/footer.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterOutlet, NavbarComponent, SidebarComponent, FooterComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App implements OnInit {
-  private apiService = inject(ApiService);
+export class App {
+  public isSidebarOpen = signal<boolean>(false);
 
-  protected readonly title = 'AgriPulse';
-  protected readonly subtitle = 'Precision Agriculture Using Deep Learning';
-  
-  protected isChecking = signal<boolean>(true);
-  protected isConnected = signal<boolean>(false);
-  protected healthData = signal<HealthResponse | null>(null);
-  protected lastCheckedTime = signal<string>('');
-
-  ngOnInit(): void {
-    this.checkBackendHealth();
+  public onToggleSidebar(): void {
+    this.isSidebarOpen.update((v) => !v);
   }
 
-  checkBackendHealth(): void {
-    this.isChecking.set(true);
-    this.apiService.getHealth().subscribe({
-      next: (response) => {
-        this.isChecking.set(false);
-        this.lastCheckedTime.set(new Date().toLocaleTimeString());
-        if (response && response.status === 'ok') {
-          this.isConnected.set(true);
-          this.healthData.set(response);
-        } else {
-          this.isConnected.set(false);
-          this.healthData.set(null);
-        }
-      },
-      error: () => {
-        this.isChecking.set(false);
-        this.isConnected.set(false);
-        this.healthData.set(null);
-        this.lastCheckedTime.set(new Date().toLocaleTimeString());
-      }
-    });
+  public onCloseSidebar(): void {
+    this.isSidebarOpen.set(false);
   }
 }

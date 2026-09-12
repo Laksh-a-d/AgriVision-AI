@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, of, throwError } from 'rxjs';
+import { Observable, tap, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/common.model';
 import { User } from '../models/user.model';
@@ -23,6 +23,10 @@ export class AuthService {
   public isAuthenticatedSignal = signal<boolean>(!!this.getToken());
 
   constructor(private http: HttpClient) {}
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  }
 
   public register(request: UserRegisterRequest): Observable<ApiResponse<User>> {
     return this.http.post<ApiResponse<User>>(`${this.baseUrl}/register`, request);
@@ -47,7 +51,7 @@ export class AuthService {
 
     return this.http.post<ApiResponse<LogoutResponse>>(`${this.baseUrl}/logout`, {}).pipe(
       tap(() => this.clearSession()),
-      catchError((err) => {
+      catchError(() => {
         this.clearSession();
         return of({ success: true, message: 'Logged out successfully' });
       })
@@ -65,25 +69,42 @@ export class AuthService {
   }
 
   public setSession(tokenData: TokenResponse): void {
-    localStorage.setItem(this.TOKEN_KEY, tokenData.access_token);
+    if (this.isBrowser()) {
+      try {
+        window.localStorage.setItem(this.TOKEN_KEY, tokenData.access_token);
+      } catch {}
+    }
     this.setUser(tokenData.user);
     this.isAuthenticatedSignal.set(true);
   }
 
   public setUser(user: User): void {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    if (this.isBrowser()) {
+      try {
+        window.localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+      } catch {}
+    }
     this.currentUser.set(user);
   }
 
   public clearSession(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
+    if (this.isBrowser()) {
+      try {
+        window.localStorage.removeItem(this.TOKEN_KEY);
+        window.localStorage.removeItem(this.USER_KEY);
+      } catch {}
+    }
     this.currentUser.set(null);
     this.isAuthenticatedSignal.set(false);
   }
 
   public getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    if (!this.isBrowser()) return null;
+    try {
+      return window.localStorage.getItem(this.TOKEN_KEY);
+    } catch {
+      return null;
+    }
   }
 
   public isAuthenticated(): boolean {
@@ -91,8 +112,9 @@ export class AuthService {
   }
 
   private getStoredUser(): User | null {
+    if (!this.isBrowser()) return null;
     try {
-      const stored = localStorage.getItem(this.USER_KEY);
+      const stored = window.localStorage.getItem(this.USER_KEY);
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
