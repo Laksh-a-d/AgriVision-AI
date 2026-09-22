@@ -1,5 +1,5 @@
-﻿# Stage 1: Build Angular Application
-FROM node:20-alpine AS build
+# Stage 1: Build Angular Application
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy compiled Angular distribution
-COPY --from=build /app/dist/agripulse-ui /usr/share/nginx/html
+COPY --from=build /app/dist/agripulse-ui/browser /usr/share/nginx/html
 
 EXPOSE 80
 
