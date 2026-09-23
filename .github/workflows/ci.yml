@@ -30,10 +30,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           cache: 'pip'
 
       - name: Install Dependencies
@@ -46,8 +46,11 @@ jobs:
         env:
           DATABASE_URL: postgresql+psycopg2://postgres:password@localhost:5432/agripulse_db
           SECRET_KEY: test_secret_key_ci_environment_32_bytes_long_value
+          JWT_SECRET: test_secret_key_ci_environment_32_bytes_long_value
           ALGORITHM: HS256
+          JWT_ALGORITHM: HS256
           ACCESS_TOKEN_EXPIRE_MINUTES: 60
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           cd backend
           pytest tests/ -v --tb=short
@@ -60,10 +63,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -97,7 +100,7 @@ jobs:
       - name: Verify Backend Docker Build
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
           file: ./backend/Dockerfile
           push: false
           tags: agripulse-backend:ci

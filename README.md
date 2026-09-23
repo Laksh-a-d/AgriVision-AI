@@ -1,4 +1,4 @@
-﻿# AgriPulse: Precision Agriculture Platform Using Deep Learning
+# AgriPulse: Precision Agriculture Platform Using Deep Learning
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Angular](https://img.shields.io/badge/Angular-18+-DD0031.svg?logo=angular&logoColor=white)](https://angular.dev)
@@ -87,7 +87,7 @@ npm start
 ### Method 2: Docker Container Launch
 ```bash
 # Build and run all services in detached mode
-docker-compose -f docker/docker-compose.yml up -d --build
+docker compose up -d --build
 ```
 
 ---
@@ -138,8 +138,8 @@ D:\FINAL FINAL YEAR PROJECT
 │   │   ├── layout/           # Navbar, sidebar, footer components
 │   │   └── shared/           # Reusable UI components (charts, spinners, empty states)
 │   └── package.json          # Node dependencies & test scripts
-├── saved_models/             # Pretrained neural weights (LSTM, DNN, Scalers, Encoders)
-├── docker/                   # Dockerfiles & docker-compose.yml
+├── ml/                       # Machine learning subsystems, neural weights & inference logic
+├── docker-compose.yml        # Multi-container orchestration specification
 ├── .github/workflows/        # CI/CD pipeline (ci.yml)
 ├── docs/                     # Full technical documentation suite
 └── scripts/                  # Automated verification & benchmark scripts
