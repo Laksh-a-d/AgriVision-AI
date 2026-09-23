@@ -114,7 +114,10 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 
-# Always preserve structural files
+# Always preserve structural files and trained model artifacts
 !.gitkeep
 !README.md
 !*.md
+!ml/*/model/*.keras
+!ml/*/model/*.joblib
+!ml/*/model/*.json
