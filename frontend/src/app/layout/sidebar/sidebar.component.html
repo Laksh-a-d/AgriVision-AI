@@ -14,26 +14,30 @@
     </button>
   </div>
 
-  <div class="sidebar-section-title">Navigation</div>
-  <nav class="sidebar-nav">
-    @for (item of navItems; track item.path) {
-      <a
-        [routerLink]="item.path"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
-        (click)="onClose()"
-        class="nav-item"
-      >
-        <div class="nav-item-icon">
-          <span class="material-symbols-outlined">{{ item.icon }}</span>
-        </div>
-        <div class="nav-item-text">
-          <span class="nav-item-label">{{ item.label }}</span>
-          <span class="nav-item-desc">{{ item.description }}</span>
-        </div>
-      </a>
+  <div class="sidebar-scrollable-content">
+    @for (section of navSections; track section.title) {
+      <div class="sidebar-section-title">{{ section.title }}</div>
+      <nav class="sidebar-nav">
+        @for (item of section.items; track item.path) {
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
+            (click)="onClose()"
+            class="nav-item"
+          >
+            <div class="nav-item-icon">
+              <span class="material-symbols-outlined">{{ item.icon }}</span>
+            </div>
+            <div class="nav-item-text">
+              <span class="nav-item-label">{{ item.label }}</span>
+              <span class="nav-item-desc">{{ item.description }}</span>
+            </div>
+          </a>
+        }
+      </nav>
     }
-  </nav>
+  </div>
 
   <div class="sidebar-divider"></div>
 

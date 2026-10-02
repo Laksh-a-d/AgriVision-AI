@@ -19,19 +19,24 @@
   gap: 16px;
 }
 
+.sidebar-toggle,
 .mobile-toggle {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: #94a3b8;
   cursor: pointer;
-  padding: 6px;
+  padding: 8px;
   border-radius: 8px;
   transition: all 0.2s ease;
 }
 
+.sidebar-toggle:hover,
 .mobile-toggle:hover {
   background: rgba(51, 65, 85, 0.5);
+  border-color: rgba(51, 65, 85, 0.8);
   color: #ffffff;
 }
 
@@ -249,9 +254,6 @@
 @media (max-width: 900px) {
   .desktop-nav {
     display: none;
-  }
-  .mobile-toggle {
-    display: block;
   }
   .user-details {
     display: none;

@@ -5,6 +5,8 @@ import { YieldService } from '../../core/services/yield.service';
 import { YieldForecastResponse } from '../../core/models/yield.model';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 
+import { STATE_DISTRICTS } from '../../core/constants/locations.constant';
+
 interface YieldPreset {
   name: string;
   state: string;
@@ -29,20 +31,8 @@ export class YieldForecastComponent {
   public errorMessage = signal<string | null>(null);
   public result = signal<YieldForecastResponse | null>(null);
 
-  public states = [
-    'Punjab',
-    'Haryana',
-    'Uttar Pradesh',
-    'Maharashtra',
-    'Karnataka',
-    'Tamil Nadu',
-    'Andhra Pradesh',
-    'Madhya Pradesh',
-    'West Bengal',
-    'Gujarat',
-    'Rajasthan',
-    'Bihar'
-  ];
+  public states = Object.keys(STATE_DISTRICTS).sort();
+  public availableDistricts = signal<string[]>([]);
 
   public seasons = ['Kharif', 'Rabi', 'Summer', 'Autumn', 'Winter', 'Whole Year'];
 
@@ -76,10 +66,34 @@ export class YieldForecastComponent {
     season: ['Rabi', Validators.required],
     area: [10.0, [Validators.required, Validators.min(0.01)]],
     crop_year: [2024, [Validators.required, Validators.min(1990), Validators.max(2035)]],
-    model_type: ['deep_neural_network']
+    model_type: ['dnn']
   });
 
+  constructor() {
+    const initialState = this.yieldForm.get('state')?.value || 'Punjab';
+    this.updateDistrictsForState(initialState, false);
+
+    this.yieldForm.get('state')?.valueChanges.subscribe((selectedState) => {
+      if (selectedState) {
+        this.updateDistrictsForState(selectedState, true);
+      }
+    });
+  }
+
+  private updateDistrictsForState(stateName: string, resetDistrict: boolean = true): void {
+    const districts = STATE_DISTRICTS[stateName] || [];
+    this.availableDistricts.set(districts);
+    const currentDistrict = this.yieldForm.get('district')?.value;
+    if (resetDistrict || !currentDistrict || !districts.includes(currentDistrict)) {
+      this.yieldForm.patchValue({
+        district: districts.length > 0 ? districts[0] : ''
+      }, { emitEvent: false });
+    }
+  }
+
   public applyPreset(preset: YieldPreset): void {
+    const districts = STATE_DISTRICTS[preset.state] || [];
+    this.availableDistricts.set(districts);
     this.yieldForm.patchValue({
       state: preset.state,
       district: preset.district,

@@ -87,12 +87,18 @@
   color: #f8fafc;
 }
 
+.sidebar-scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+
 .sidebar-section-title {
-  padding: 16px 20px 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 16px 20px 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: #64748b;
 }
 
@@ -101,8 +107,6 @@
   flex-direction: column;
   gap: 4px;
   padding: 0 12px;
-  flex: 1;
-  overflow-y: auto;
 }
 
 .nav-item {

@@ -104,7 +104,11 @@
           </div>
           <div class="form-group">
             <label for="district" class="form-label">District</label>
-            <input id="district" type="text" formControlName="district" class="form-control" />
+            <select id="district" formControlName="district" class="form-control">
+              @for (d of availableDistricts(); track d) {
+                <option [value]="d">{{ d }}</option>
+              }
+            </select>
           </div>
         </div>
 

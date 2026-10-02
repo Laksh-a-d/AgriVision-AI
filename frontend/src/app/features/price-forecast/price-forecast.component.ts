@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { PriceService } from '../../core/services/price.service';
-import { PriceForecastResponse } from '../../core/models/price.model';
+import { PriceForecastPoint, PriceForecastResponse } from '../../core/models/price.model';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 
 @Component({
@@ -130,9 +130,11 @@ export class PriceForecastComponent {
       .map((s) => parseFloat(s.trim()))
       .filter((n) => !isNaN(n));
 
-    if (rawPrices.length < 5) {
+    if (rawPrices.length < 30) {
       this.isLoading.set(false);
-      this.errorMessage.set('Please provide at least 5 historical price points (30 points recommended for best LSTM accuracy).');
+      this.errorMessage.set(
+        `Please provide at least 30 historical daily price points (currently provided: ${rawPrices.length}). Click "Generate Real Sequence" to populate a 30-day baseline.`
+      );
       return;
     }
 
@@ -147,8 +149,33 @@ export class PriceForecastComponent {
       next: (response) => {
         this.isLoading.set(false);
         if (response.success && response.data) {
-          this.result.set(response.data);
-          this.updateChart(rawPrices, response.data);
+          const raw = response.data;
+          const currentPrice = raw.current_price ?? raw.last_observed_price ?? (rawPrices.length > 0 ? rawPrices[rawPrices.length - 1] : 0);
+          const forecastedEndPrice = raw.forecasted_end_price ?? raw.predicted_end_price ?? currentPrice;
+          const changeAbs = raw.price_change_absolute ?? (forecastedEndPrice - currentPrice);
+          const changePct = raw.price_change_percentage ?? raw.projected_percentage_change ?? 0;
+          const normalizedForecasts: PriceForecastPoint[] = (raw.forecasts || []).map((f: any) => ({
+            day: f.day,
+            forecasted_price: f.forecasted_price ?? f.predicted_modal_price ?? 0,
+            predicted_modal_price: f.predicted_modal_price ?? f.forecasted_price ?? 0,
+            unit: f.unit || 'INR/Quintal',
+            date_offset: f.date_offset
+          }));
+
+          const normalized: PriceForecastResponse = {
+            ...raw,
+            current_price: currentPrice,
+            last_observed_price: raw.last_observed_price ?? currentPrice,
+            forecasted_end_price: forecastedEndPrice,
+            predicted_end_price: raw.predicted_end_price ?? forecastedEndPrice,
+            price_change_absolute: changeAbs,
+            price_change_percentage: changePct,
+            projected_percentage_change: raw.projected_percentage_change ?? changePct,
+            forecasts: normalizedForecasts
+          };
+
+          this.result.set(normalized);
+          this.updateChart(rawPrices, normalized);
         } else {
           this.errorMessage.set(response.error?.message || 'Price forecast failed.');
         }

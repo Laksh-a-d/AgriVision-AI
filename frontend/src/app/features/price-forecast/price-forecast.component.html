@@ -141,23 +141,23 @@
         <div class="summary-cards-grid">
           <div class="stat-tile">
             <span class="tile-label">Current Spot Price</span>
-            <div class="tile-val">₹{{ res.current_price.toFixed(2) }}</div>
+            <div class="tile-val">₹{{ (res.current_price ?? 0).toFixed(2) }}</div>
             <span class="tile-sub">Base Market Reference</span>
           </div>
 
           <div class="stat-tile">
             <span class="tile-label">Forecast (Day +{{ res.forecast_horizon_days }})</span>
-            <div class="tile-val">₹{{ res.forecasted_end_price.toFixed(2) }}</div>
+            <div class="tile-val">₹{{ (res.forecasted_end_price ?? 0).toFixed(2) }}</div>
             <span class="tile-sub">Expected Terminal Value</span>
           </div>
 
-          <div class="stat-tile" [class]="res.trend_direction.toLowerCase()">
+          <div class="stat-tile" [class]="(res.trend_direction || '').toLowerCase()">
             <span class="tile-label">Expected Shift</span>
             <div class="tile-val">
-              {{ res.price_change_absolute >= 0 ? '+' : '' }}₹{{ res.price_change_absolute.toFixed(2) }}
+              {{ (res.price_change_absolute ?? 0) >= 0 ? '+' : '' }}₹{{ (res.price_change_absolute ?? 0).toFixed(2) }}
             </div>
-            <span class="trend-badge" [class]="res.trend_direction.toLowerCase()">
-              {{ res.trend_direction }} ({{ (res.price_change_percentage).toFixed(2) }}%)
+            <span class="trend-badge" [class]="(res.trend_direction || '').toLowerCase()">
+              {{ res.trend_direction }} ({{ (res.price_change_percentage ?? 0).toFixed(2) }}%)
             </span>
           </div>
         </div>
@@ -169,7 +169,7 @@
               <h3 class="chart-title">{{ res.commodity }} Price Trajectory ({{ res.market }})</h3>
               <p class="chart-subtitle">Historical Sequence vs. {{ res.forecast_horizon_days }}-Day LSTM Forecast</p>
             </div>
-            <span class="latency-pill">{{ res.execution_time_ms.toFixed(1) }} ms</span>
+            <span class="latency-pill">{{ (res.execution_time_ms ?? 0).toFixed(1) }} ms</span>
           </div>
           <div class="chart-container">
             <canvas
@@ -199,14 +199,14 @@
                 @for (pt of res.forecasts; track pt.day) {
                   <tr>
                     <td class="day-cell">Day +{{ pt.day }}</td>
-                    <td class="price-cell">₹{{ pt.forecasted_price.toFixed(2) }}</td>
-                    <td [class.positive]="pt.forecasted_price >= res.current_price" [class.negative]="pt.forecasted_price < res.current_price">
-                      {{ pt.forecasted_price >= res.current_price ? '+' : '' }}₹{{ (pt.forecasted_price - res.current_price).toFixed(2) }}
+                    <td class="price-cell">₹{{ (pt.forecasted_price ?? 0).toFixed(2) }}</td>
+                    <td [class.positive]="(pt.forecasted_price ?? 0) >= (res.current_price ?? 0)" [class.negative]="(pt.forecasted_price ?? 0) < (res.current_price ?? 0)">
+                      {{ (pt.forecasted_price ?? 0) >= (res.current_price ?? 0) ? '+' : '' }}₹{{ ((pt.forecasted_price ?? 0) - (res.current_price ?? 0)).toFixed(2) }}
                     </td>
                     <td>
-                      @if (pt.forecasted_price >= res.current_price * 1.02) {
+                      @if ((pt.forecasted_price ?? 0) >= (res.current_price ?? 0) * 1.02) {
                         <span class="action-tag hold">Hold / Favorable</span>
-                      } @else if (pt.forecasted_price <= res.current_price * 0.98) {
+                      } @else if ((pt.forecasted_price ?? 0) <= (res.current_price ?? 0) * 0.98) {
                         <span class="action-tag sell">Sell Current</span>
                       } @else {
                         <span class="action-tag neutral">Stable / Monitor</span>

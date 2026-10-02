@@ -1,5 +1,5 @@
-from typing import Optional, Literal
-from pydantic import BaseModel, Field
+from typing import Optional, Literal, Any
+from pydantic import BaseModel, Field, field_validator
 
 
 class YieldForecastRequest(BaseModel):
@@ -11,8 +11,20 @@ class YieldForecastRequest(BaseModel):
     crop: str = Field(..., description="Target agricultural crop name", json_schema_extra={"example": "Wheat"})
     season: str = Field(..., description="Agricultural cropping season (Kharif, Rabi, Summer, Whole Year)", json_schema_extra={"example": "Rabi"})
     area: float = Field(..., gt=0.0, description="Cultivated land area in hectares (must be > 0)", json_schema_extra={"example": 50.0})
-    crop_year: int = Field(2024, ge=1990, le=2050, description="Target cultivation year", json_schema_extra={"example": 2024})
-    model_type: Literal["dnn", "tree"] = Field("dnn", description="Selected ML engine: 'dnn' (Deep Neural Network) or 'tree' (Gradient Boosting)", json_schema_extra={"example": "dnn"})
+    crop_year: int = Field(2024, ge=1980, le=2050, description="Target cultivation year", json_schema_extra={"example": 2024})
+    model_type: str = Field("dnn", description="Selected ML engine: 'dnn' (Deep Neural Network) or 'tree' (Gradient Boosting)", json_schema_extra={"example": "dnn"})
+
+    @field_validator("model_type", mode="before")
+    @classmethod
+    def normalize_model_type(cls, v: Any) -> str:
+        if not v:
+            return "dnn"
+        val = str(v).lower().strip()
+        if val in ("dnn", "deep_neural_network", "neural_network", "deep_learning"):
+            return "dnn"
+        if val in ("tree", "random_forest", "rf", "gradient_boosting", "gbr"):
+            return "tree"
+        return "dnn"
 
 
 class YieldForecastResponse(BaseModel):

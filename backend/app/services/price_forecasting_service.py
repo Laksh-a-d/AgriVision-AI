@@ -30,10 +30,12 @@ class PriceForecastingService:
 
         execution_ms = round((time.time() - t0) * 1000.0, 2)
 
+        price_change_abs = round(raw_result["predicted_end_price"] - raw_result["last_observed_price"], 2)
         items = [
             PriceForecastDayItem(
                 day=f["day"],
                 predicted_modal_price=f["predicted_modal_price"],
+                forecasted_price=f["predicted_modal_price"],
                 unit=f.get("unit", "INR/Quintal")
             )
             for f in raw_result["forecasts"]
@@ -49,9 +51,14 @@ class PriceForecastingService:
             market=raw_result["market"],
             forecast_horizon_days=raw_result["forecast_horizon_days"],
             last_observed_price=raw_result["last_observed_price"],
+            current_price=raw_result["last_observed_price"],
             predicted_end_price=raw_result["predicted_end_price"],
+            forecasted_end_price=raw_result["predicted_end_price"],
             projected_percentage_change=raw_result["projected_percentage_change"],
+            price_change_percentage=raw_result["projected_percentage_change"],
+            price_change_absolute=price_change_abs,
             trend_direction=raw_result["trend_direction"],
             forecasts=items,
-            execution_time_ms=execution_ms
+            execution_time_ms=execution_ms,
+            model_type="LSTM"
         )

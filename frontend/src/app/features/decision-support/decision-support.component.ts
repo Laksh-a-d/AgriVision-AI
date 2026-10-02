@@ -8,6 +8,8 @@ import { DecisionService } from '../../core/services/decision.service';
 import { DecisionRecommendationResponse, AlternativeCropEvaluation } from '../../core/models/decision.model';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 
+import { STATE_DISTRICTS } from '../../core/constants/locations.constant';
+
 interface DecisionPreset {
   name: string;
   description: string;
@@ -49,10 +51,8 @@ export class DecisionSupportComponent {
   public errorMessage = signal<string | null>(null);
   public result = signal<DecisionRecommendationResponse | null>(null);
 
-  public states = [
-    'Punjab', 'Haryana', 'Uttar Pradesh', 'Maharashtra', 'Karnataka',
-    'Tamil Nadu', 'Andhra Pradesh', 'Madhya Pradesh', 'West Bengal', 'Gujarat', 'Rajasthan', 'Bihar'
-  ];
+  public states = Object.keys(STATE_DISTRICTS).sort();
+  public availableDistricts = signal<string[]>([]);
 
   public seasons = ['Kharif', 'Rabi', 'Summer', 'Autumn', 'Winter', 'Whole Year'];
 
@@ -169,7 +169,31 @@ export class DecisionSupportComponent {
     }
   };
 
+  constructor() {
+    const initialState = this.decisionForm.get('state')?.value || 'Punjab';
+    this.updateDistrictsForState(initialState, false);
+
+    this.decisionForm.get('state')?.valueChanges.subscribe((selectedState) => {
+      if (selectedState) {
+        this.updateDistrictsForState(selectedState, true);
+      }
+    });
+  }
+
+  private updateDistrictsForState(stateName: string, resetDistrict: boolean = true): void {
+    const districts = STATE_DISTRICTS[stateName] || [];
+    this.availableDistricts.set(districts);
+    const currentDistrict = this.decisionForm.get('district')?.value;
+    if (resetDistrict || !currentDistrict || !districts.includes(currentDistrict)) {
+      this.decisionForm.patchValue({
+        district: districts.length > 0 ? districts[0] : ''
+      }, { emitEvent: false });
+    }
+  }
+
   public applyPreset(preset: DecisionPreset): void {
+    const districts = STATE_DISTRICTS[preset.values.state] || [];
+    this.availableDistricts.set(districts);
     this.decisionForm.patchValue(preset.values);
   }
 

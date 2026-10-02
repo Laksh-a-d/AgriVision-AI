@@ -1,6 +1,6 @@
 <header class="navbar-container">
   <div class="navbar-left">
-    <button type="button" class="btn-icon mobile-toggle" (click)="onToggleSidebar()" aria-label="Toggle navigation">
+    <button type="button" class="btn-icon sidebar-toggle mobile-toggle" (click)="onToggleSidebar()" aria-label="Toggle navigation" title="Open navigation menu">
       <span class="material-symbols-outlined">menu</span>
     </button>
     <a routerLink="/dashboard" class="brand-link">
@@ -35,14 +35,6 @@
       <a routerLink="/decision-support" routerLinkActive="active" class="nav-link">
         <span class="material-symbols-outlined">psychology</span>
         Decision AI
-      </a>
-      <a routerLink="/history" routerLinkActive="active" class="nav-link">
-        <span class="material-symbols-outlined">history</span>
-        History
-      </a>
-      <a routerLink="/monitoring" routerLinkActive="active" class="nav-link">
-        <span class="material-symbols-outlined">monitoring</span>
-        Monitoring
       </a>
     </nav>
   </div>

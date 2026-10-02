@@ -15,7 +15,7 @@
 
   <!-- Regional Presets -->
   <section class="presets-section">
-    <span class="presets-label">Regional Presets:</span>
+    <span class="presets-label">Samples:</span>
     <div class="preset-buttons">
       @for (preset of presets; track preset.name) {
         <button
@@ -43,7 +43,6 @@
     <div class="card form-card">
       <div class="card-header">
         <h2 class="card-title">Cultivation & Geographic Inputs</h2>
-        <span class="badge-tag">Agricultural Features</span>
       </div>
 
       <form [formGroup]="yieldForm" (ngSubmit)="onSubmit()" class="parameter-form" novalidate>
@@ -61,13 +60,11 @@
           <!-- District -->
           <div class="form-group">
             <label for="district" class="form-label">District Name</label>
-            <input
-              id="district"
-              type="text"
-              formControlName="district"
-              class="form-control"
-              placeholder="e.g. Ludhiana, Nagpur, Belagavi"
-            />
+            <select id="district" formControlName="district" class="form-control">
+              @for (d of availableDistricts(); track d) {
+                <option [value]="d">{{ d }}</option>
+              }
+            </select>
             @if (yieldForm.get('district')?.invalid && yieldForm.get('district')?.touched) {
               <span class="error-msg">District is required.</span>
             }
@@ -123,8 +120,8 @@
         <div class="form-group">
           <label for="model_type" class="form-label">Prediction Model</label>
           <select id="model_type" formControlName="model_type" class="form-control">
-            <option value="deep_neural_network">Deep Neural Network (DNN Regressor - Primary)</option>
-            <option value="random_forest">Random Forest Baseline</option>
+            <option value="dnn">Deep Neural Network (DNN Regressor - Primary)</option>
+            <option value="tree">Gradient Boosting / Random Forest Baseline</option>
           </select>
         </div>
 
@@ -151,26 +148,26 @@
         <div class="yield-hero-card">
           <div class="yield-hero-header">
             <span class="yield-tag">Estimated Harvest Projection</span>
-            <span class="latency-pill">{{ res.execution_time_ms.toFixed(1) }} ms</span>
+            <span class="latency-pill">{{ (res.execution_time_ms ?? 0).toFixed(1) }} ms</span>
           </div>
 
           <div class="yield-hero-body">
             <div class="yield-main-metric">
               <span class="metric-title">Predicted Yield</span>
               <div class="metric-value">
-                {{ res.predicted_yield_tonnes_per_hectare.toFixed(2) }}
+                {{ (res.predicted_yield_tonnes_per_hectare ?? 0).toFixed(2) }}
                 <span class="metric-unit">Tonnes / Ha</span>
               </div>
-              <div class="productivity-pill" [class]="getProductivityLevel(res.predicted_yield_tonnes_per_hectare).class">
+              <div class="productivity-pill" [class]="getProductivityLevel(res.predicted_yield_tonnes_per_hectare ?? 0).class">
                 <span class="status-dot"></span>
-                <span>{{ getProductivityLevel(res.predicted_yield_tonnes_per_hectare).label }}</span>
+                <span>{{ getProductivityLevel(res.predicted_yield_tonnes_per_hectare ?? 0).label }}</span>
               </div>
             </div>
 
             <div class="production-summary-box">
               <span class="prod-title">Total Farm Production</span>
               <div class="prod-value">
-                {{ res.estimated_total_production_tonnes.toFixed(2) }}
+                {{ (res.estimated_total_production_tonnes ?? 0).toFixed(2) }}
                 <span class="prod-unit">Tonnes</span>
               </div>
               <span class="prod-calc">Across {{ res.area_hectares }} Hectares</span>
@@ -202,7 +199,7 @@
             <div class="inner-info">
               <span class="inner-label">Cultivation Area</span>
               <span class="inner-value">{{ res.area_hectares }} Hectares</span>
-              <span class="inner-sub">{{ (res.area_hectares * 2.47105).toFixed(1) }} Acres equivalent</span>
+              <span class="inner-sub">{{ ((res.area_hectares ?? 0) * 2.47105).toFixed(1) }} Acres equivalent</span>
             </div>
           </div>
 
@@ -212,7 +209,7 @@
             </div>
             <div class="inner-info">
               <span class="inner-label">Output in Quintals</span>
-              <span class="inner-value">{{ (res.estimated_total_production_tonnes * 10).toFixed(0) }} Qtl</span>
+              <span class="inner-value">{{ ((res.estimated_total_production_tonnes ?? 0) * 10).toFixed(0) }} Qtl</span>
               <span class="inner-sub">Mandi wholesale trade unit</span>
             </div>
           </div>
