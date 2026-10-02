@@ -21,8 +21,21 @@ COL_YIELD = "Yield"   # Computed feature: Production / Area
 
 REQUIRED_COLUMNS = [COL_STATE, COL_DISTRICT, COL_YEAR, COL_SEASON, COL_CROP, COL_AREA, COL_PRODUCTION]
 
-# Major benchmark crops
-BENCHMARK_CROPS = ["Rice", "Wheat", "Maize", "Sugarcane", "Cotton(lint)", "Bajra", "Jowar", "Gram", "Groundnut", "Potato"]
+# Major benchmark crops (matching UI options and national agriculture surveys)
+BENCHMARK_CROPS = [
+    "Rice",
+    "Wheat",
+    "Maize",
+    "Sugarcane",
+    "Cotton",
+    "Potato",
+    "Onion",
+    "Soyabean",
+    "Groundnut",
+    "Gram",
+    "Bajra",
+    "Jowar"
+]
 
 # Temporal train/val/test threshold years (Chronological Split)
 TRAIN_MAX_YEAR = 2011   # <= 2011 (~70%)

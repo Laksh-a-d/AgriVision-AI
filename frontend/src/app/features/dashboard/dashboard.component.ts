@@ -6,7 +6,6 @@ import { Chart, ChartConfiguration, ChartData, registerables } from 'chart.js';
 import { AuthService } from '../../core/services/auth.service';
 import { SystemService } from '../../core/services/system.service';
 import { PredictionHistoryService } from '../../core/services/prediction-history.service';
-import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ModelsStatusResponse } from '../../core/models/common.model';
@@ -21,7 +20,6 @@ Chart.register(...registerables);
     CommonModule,
     RouterModule,
     BaseChartDirective,
-    StatCardComponent,
     LoadingSpinnerComponent,
     EmptyStateComponent
   ],
