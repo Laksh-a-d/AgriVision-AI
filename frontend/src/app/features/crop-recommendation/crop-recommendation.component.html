@@ -8,14 +8,14 @@
       <div class="header-tag">Deep Learning Subsystem 3A</div>
       <h1 class="page-title">LSTM Crop Recommendation AI</h1>
       <p class="page-subtitle">
-        Input soil chemical compositions and meteorological metrics to compute multi-class probabilistic crop suitability (98.48% Accuracy).
+        Input soil chemical compositions (N, P, K, pH) and meteorological metrics (Temperature, Humidity, Rainfall) to compute multi-class probabilistic crop suitability (98.48% Accuracy across 22 crops).
       </p>
     </div>
   </header>
 
   <!-- Quick Presets -->
   <section class="presets-section">
-    <span class="presets-label">Quick Test Presets:</span>
+    <span class="presets-label">Indian Regional Presets:</span>
     <div class="preset-buttons">
       @for (preset of presets; track preset.name) {
         <button
@@ -24,7 +24,7 @@
           (click)="applyPreset(preset)"
           [title]="preset.description"
         >
-          <span class="material-symbols-outlined">science</span>
+          <span class="material-symbols-outlined">location_on</span>
           <span>{{ preset.name }}</span>
         </button>
       }
@@ -43,11 +43,29 @@
     <!-- Form Card -->
     <div class="card form-card">
       <div class="card-header">
-        <h2 class="card-title">Soil & Climate Parameters</h2>
-        <span class="badge-tag">7 Required Features</span>
+        <h2 class="card-title">Agro-Climatic Parameters</h2>
+        <span class="badge-tag">7 Neural Features</span>
       </div>
 
       <form [formGroup]="cropForm" (ngSubmit)="onSubmit()" class="parameter-form" novalidate>
+        <!-- Location Context (Contextual Metadata) -->
+        <div class="location-box">
+          <div class="location-box-header">
+            <span class="material-symbols-outlined location-icon">public</span>
+            <span class="location-title">Location Context (Optional Metadata)</span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="state" class="form-label">State / Region</label>
+              <input id="state" type="text" formControlName="state" class="form-control" placeholder="e.g. Maharashtra, Punjab" />
+            </div>
+            <div class="form-group">
+              <label for="district" class="form-label">District</label>
+              <input id="district" type="text" formControlName="district" class="form-control" placeholder="e.g. Nagpur, Ludhiana" />
+            </div>
+          </div>
+        </div>
+
         <div class="form-row">
           <!-- Nitrogen -->
           <div class="form-group">
@@ -57,7 +75,7 @@
             </div>
             <input id="N" type="number" formControlName="N" class="form-control" />
             @if (cropForm.get('N')?.invalid && cropForm.get('N')?.touched) {
-              <span class="error-msg">Value must be between 0 and 140.</span>
+              <span class="error-msg">Valid range: 0 to 200 kg/ha.</span>
             }
           </div>
 
@@ -69,7 +87,7 @@
             </div>
             <input id="P" type="number" formControlName="P" class="form-control" />
             @if (cropForm.get('P')?.invalid && cropForm.get('P')?.touched) {
-              <span class="error-msg">Value must be between 5 and 145.</span>
+              <span class="error-msg">Valid range: 0 to 200 kg/ha.</span>
             }
           </div>
         </div>
@@ -83,7 +101,7 @@
             </div>
             <input id="K" type="number" formControlName="K" class="form-control" />
             @if (cropForm.get('K')?.invalid && cropForm.get('K')?.touched) {
-              <span class="error-msg">Value must be between 5 and 205.</span>
+              <span class="error-msg">Valid range: 0 to 250 kg/ha.</span>
             }
           </div>
 
@@ -95,7 +113,7 @@
             </div>
             <input id="ph" type="number" step="0.1" formControlName="ph" class="form-control" />
             @if (cropForm.get('ph')?.invalid && cropForm.get('ph')?.touched) {
-              <span class="error-msg">Value must be between 3.5 and 10.0.</span>
+              <span class="error-msg">Valid range: 3.0 to 10.0.</span>
             }
           </div>
         </div>
@@ -105,23 +123,23 @@
           <div class="form-group">
             <div class="label-row">
               <label for="temperature" class="form-label">Temperature</label>
-              <span class="unit-tag">°C [8 - 45]</span>
+              <span class="unit-tag">°C [8.8 - 43.7]</span>
             </div>
             <input id="temperature" type="number" step="0.1" formControlName="temperature" class="form-control" />
             @if (cropForm.get('temperature')?.invalid && cropForm.get('temperature')?.touched) {
-              <span class="error-msg">Value must be between 8 and 45 °C.</span>
+              <span class="error-msg">Valid range: 0 to 60 °C.</span>
             }
           </div>
 
           <!-- Humidity -->
           <div class="form-group">
             <div class="label-row">
-              <label for="humidity" class="form-label">Humidity</label>
-              <span class="unit-tag">% [14 - 100]</span>
+              <label for="humidity" class="form-label">Relative Humidity</label>
+              <span class="unit-tag">% [14.3 - 100]</span>
             </div>
             <input id="humidity" type="number" step="0.1" formControlName="humidity" class="form-control" />
             @if (cropForm.get('humidity')?.invalid && cropForm.get('humidity')?.touched) {
-              <span class="error-msg">Value must be between 14 and 100%.</span>
+              <span class="error-msg">Valid range: 0 to 100%.</span>
             }
           </div>
         </div>
@@ -129,12 +147,13 @@
         <!-- Rainfall -->
         <div class="form-group">
           <div class="label-row">
-            <label for="rainfall" class="form-label">Annual Rainfall</label>
+            <label for="rainfall" class="form-label">Seasonal Rainfall (Crop Cycle)</label>
             <span class="unit-tag">mm [20 - 300]</span>
           </div>
           <input id="rainfall" type="number" step="0.1" formControlName="rainfall" class="form-control" />
+          <span class="field-hint">Note: Enter seasonal crop cycle rainfall, not cumulative annual precipitation.</span>
           @if (cropForm.get('rainfall')?.invalid && cropForm.get('rainfall')?.touched) {
-            <span class="error-msg">Value must be between 20 and 300 mm.</span>
+            <span class="error-msg">Valid range: 0 to 500 mm.</span>
           }
         </div>
 
@@ -144,7 +163,7 @@
             <span>Running LSTM Inference...</span>
           } @else {
             <span class="material-symbols-outlined">auto_awesome</span>
-            <span>Compute Crop Recommendation</span>
+            <span>Compute Crop Recommendations</span>
           }
         </button>
       </form>
@@ -154,14 +173,32 @@
     <div class="results-column">
       @if (isLoading()) {
         <div class="card loading-card">
-          <app-loading-spinner message="Running multi-layer LSTM neural inference..."></app-loading-spinner>
+          <app-loading-spinner message="Running 22-class bidirectional LSTM neural inference..."></app-loading-spinner>
         </div>
       } @else if (result(); as res) {
+        <!-- Out-of-Distribution Warning Banner -->
+        @if (res.out_of_distribution && res.ood_warnings && res.ood_warnings.length > 0) {
+          <div class="alert-warning" role="alert">
+            <div class="warning-header">
+              <span class="material-symbols-outlined">warning</span>
+              <strong>Input Distribution Notice</strong>
+            </div>
+            <p class="warning-desc">
+              The model executed standard neural inference, but detected that one or more inputs deviate from the training distribution envelope:
+            </p>
+            <ul class="warning-list">
+              @for (warning of res.ood_warnings; track warning) {
+                <li>{{ warning }}</li>
+              }
+            </ul>
+          </div>
+        }
+
         <!-- Primary Recommendation Hero -->
         <div class="hero-result-card">
           <div class="hero-glow"></div>
           <div class="hero-header">
-            <span class="hero-tag">Recommended Optimal Crop</span>
+            <span class="hero-tag">Rank #1 Optimal Recommendation</span>
             <span class="latency-pill">{{ res.execution_time_ms.toFixed(1) }} ms</span>
           </div>
           <div class="hero-body">
@@ -170,15 +207,63 @@
             </div>
             <div class="crop-info">
               <h2 class="crop-name">{{ res.recommended_crop | titlecase }}</h2>
+              <div class="crop-subinfo">
+                <span class="crop-type-tag">{{ getCropInfo(res.recommended_crop).type }}</span>
+                <span class="crop-season-tag">Season: {{ getCropInfo(res.recommended_crop).season }}</span>
+              </div>
               <div class="confidence-container">
-                <span class="confidence-label">Confidence Score:</span>
+                <span class="confidence-label">AI Suitability Probability:</span>
                 <span class="confidence-value">{{ (res.confidence * 100).toFixed(2) }}%</span>
               </div>
             </div>
           </div>
           <div class="hero-footer">
             <span class="model-badge">Arch: {{ res.model_type }}</span>
-            <span class="feature-match-badge">7/7 Agro-Climatic Match</span>
+            @if (res.location_context?.state) {
+              <span class="location-context-badge">Context: {{ res.location_context?.district ? res.location_context?.district + ', ' : '' }}{{ res.location_context?.state }}</span>
+            }
+          </div>
+        </div>
+
+        <!-- Top-5 Ranked Recommendation Cards -->
+        <div class="card recommendations-card">
+          <div class="card-header">
+            <h3 class="card-title">Top 5 Ranked AI Crop Recommendations</h3>
+            <span class="badge-tag">Softmax Distribution</span>
+          </div>
+          <div class="recommendations-list">
+            @for (item of (res.recommendations || res.top_recommendations); track item.crop; let idx = $index) {
+              <div class="recommendation-item" [class.primary-item]="idx === 0">
+                <div class="rank-badge" [class.rank-1]="idx === 0" [class.rank-2]="idx === 1" [class.rank-3]="idx === 2">
+                  #{{ idx + 1 }}
+                </div>
+                <div class="rec-details">
+                  <div class="rec-header">
+                    <h4 class="rec-crop-name">{{ item.crop | titlecase }}</h4>
+                    <span [class]="'suitability-pill ' + getSuitabilityBadge(idx, item.probability).class">
+                      {{ getSuitabilityBadge(idx, item.probability).label }}
+                    </span>
+                  </div>
+                  <div class="rec-meta">
+                    <span>{{ getCropInfo(item.crop).type }}</span>
+                    <span>•</span>
+                    <span>Soil: {{ getCropInfo(item.crop).soil }}</span>
+                    <span>•</span>
+                    <span>Water: {{ getCropInfo(item.crop).waterNeed }}</span>
+                  </div>
+                  <div class="prob-bar-container">
+                    <div class="prob-bar-track">
+                      <div
+                        class="prob-bar-fill"
+                        [style.width.%]="item.probability * 100"
+                        [class.fill-optimal]="idx === 0"
+                      ></div>
+                    </div>
+                    <span class="prob-percentage">{{ (item.probability * 100).toFixed(2) }}%</span>
+                  </div>
+                </div>
+              </div>
+            }
           </div>
         </div>
 
@@ -186,7 +271,7 @@
         <div class="charts-grid">
           <!-- Top-5 Probability Bar Chart -->
           <div class="card chart-card">
-            <h3 class="chart-title">Top 5 Ranked Crop Probabilities</h3>
+            <h3 class="chart-title">Probability Distribution Chart</h3>
             <div class="chart-container">
               <canvas
                 baseChart
@@ -200,7 +285,7 @@
 
           <!-- Radar Profile Chart -->
           <div class="card chart-card">
-            <h3 class="chart-title">Nutrient & Climate Radar</h3>
+            <h3 class="chart-title">Soil & Climate Radar Profile</h3>
             <div class="chart-container">
               <canvas
                 baseChart
@@ -218,12 +303,13 @@
           <div class="placeholder-icon">
             <span class="material-symbols-outlined">grain</span>
           </div>
-          <h3 class="placeholder-title">Ready for Recommendation</h3>
+          <h3 class="placeholder-title">Ready for Crop Recommendation</h3>
           <p class="placeholder-desc">
-            Adjust the soil nutrient and meteorological parameters on the left or select a quick test preset above, then click <strong>Compute Crop Recommendation</strong>.
+            Adjust the 7 soil and climate parameters on the left or choose an Indian regional preset above, then click <strong>Compute Crop Recommendations</strong>.
           </p>
         </div>
       }
     </div>
   </div>
 </div>
+
