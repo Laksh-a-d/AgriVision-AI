@@ -21,7 +21,7 @@ RANGE_CONSTRAINTS = {
     "temperature": {"min": 0.0, "max": 60.0},
     "humidity": {"min": 0.0, "max": 100.0},
     "ph": {"min": 3.0, "max": 10.0},
-    "rainfall": {"min": 0.0, "max": 500.0}
+    "rainfall": {"min": 0.0, "max": 3500.0}
 }
 
 # Split Ratios

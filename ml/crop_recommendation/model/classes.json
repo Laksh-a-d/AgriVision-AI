@@ -7,6 +7,7 @@
   "coffee",
   "cotton",
   "grapes",
+  "groundnut",
   "jute",
   "kidneybeans",
   "lentil",
@@ -15,10 +16,17 @@
   "mothbeans",
   "mungbean",
   "muskmelon",
+  "mustard",
   "orange",
   "papaya",
+  "pearl_millet",
   "pigeonpeas",
   "pomegranate",
   "rice",
-  "watermelon"
+  "sorghum",
+  "soybean",
+  "sugarcane",
+  "sunflower",
+  "watermelon",
+  "wheat"
 ]

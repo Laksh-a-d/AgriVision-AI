@@ -15,6 +15,10 @@ from ml.crop_recommendation.model.predict import (
     validate_crop_inputs,
     predict_crop_recommendation
 )
+from ml.crop_recommendation.agronomic_suitability import (
+    calculate_crop_agronomic_suitability,
+    rank_recommendations_with_suitability
+)
 from ml.common.paths import RAW_CROP_REC_CSV, PROCESSED_CROP_REC_CSV
 
 
@@ -31,14 +35,14 @@ class TestCropRecommendationPipeline:
     def test_preprocessing_splits_and_shapes(self):
         """Verify 70/15/15 stratified partition sizes and feature dimensions."""
         df = load_raw_data()
-        assert len(df) == 2200, f"Expected 2200 records, found {len(df)}"
+        assert len(df) == 3600, f"Expected 3600 records, found {len(df)}"
 
         X_train, X_val, X_test, y_train, y_val, y_test, scaler, le = prepare_crop_splits(df)
-        assert len(X_train) == 1540, f"Expected 1540 train samples, got {len(X_train)}"
-        assert len(X_val) == 330, f"Expected 330 val samples, got {len(X_val)}"
-        assert len(X_test) == 330, f"Expected 330 test samples, got {len(X_test)}"
+        assert len(X_train) == 2520, f"Expected 2520 train samples, got {len(X_train)}"
+        assert len(X_val) == 540, f"Expected 540 val samples, got {len(X_val)}"
+        assert len(X_test) == 540, f"Expected 540 test samples, got {len(X_test)}"
         assert X_train.shape[1] == 7, "Expected 7 input features"
-        assert len(le.classes_) == 22, "Expected 22 unique crop classes"
+        assert len(le.classes_) == 30, "Expected 30 unique crop classes"
 
     def test_sequence_reshaping(self):
         """Verify tabular-to-sequence transformation produces (N, 7, 1)."""
@@ -52,13 +56,13 @@ class TestCropRecommendationPipeline:
         assert artifacts["model"] is not None, "Model failed to load"
         assert artifacts["scaler"] is not None, "Scaler failed to load"
         assert artifacts["class_names"] is not None, "Class names failed to load"
-        assert len(artifacts["class_names"]) == 22, "Expected 22 class names in metadata"
+        assert len(artifacts["class_names"]) == 30, "Expected 30 class names in metadata"
 
     def test_prediction_output_structure_and_sorting(self):
         """Verify inference returns valid top-k list sorted descending by probability."""
         recommendations = predict_crop_recommendation(
-            n=90, p=42, k=43,
-            temperature=20.87, humidity=82.00, ph=6.50, rainfall=202.93,
+            n=35, p=70, k=45,
+            temperature=26.0, humidity=68.0, ph=6.7, rainfall=850.0,
             top_k=5
         )
         assert len(recommendations) == 5, f"Expected 5 recommendations, got {len(recommendations)}"
@@ -106,3 +110,14 @@ class TestCropRecommendationPipeline:
         ])
         assert calculate_top_k_accuracy(y_true, y_prob, k=1) == pytest.approx(2/3, 0.01)
         assert calculate_top_k_accuracy(y_true, y_prob, k=3) == pytest.approx(1.0, 0.01)
+
+    def test_agronomic_suitability_engine(self):
+        """Verify ICAR agronomic suitability calculations and ranking."""
+        res = calculate_crop_agronomic_suitability(
+            crop_name="soybean",
+            n=35, p=70, k=45,
+            temperature=26.0, humidity=68.0, ph=6.7, rainfall=850.0
+        )
+        assert res["agronomic_score"] >= 75.0, "Expected high suitability score for optimal soybean"
+        assert res["suitability_level"] == "Highly Suitable"
+        assert res["is_feasible"] is True

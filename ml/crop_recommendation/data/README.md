@@ -1,32 +1,47 @@
-# Crop Recommendation Dataset
+# Crop Recommendation Dataset — ICAR & IMD Aligned Agronomic Benchmark
 
 ## 1. Overview
-- **Dataset Name**: Crop Recommendation Dataset
+- **Dataset Name**: Indian Precision Agriculture Crop Recommendation Dataset (ICAR & IMD Aligned)
 - **Domain**: Precision Agriculture / Soil & Environmental Agronomy
-- **Source**: Open Agricultural Benchmark / Harvestify Repository
-- **Download Location**: `https://raw.githubusercontent.com/Gladiator07/Harvestify/master/Data-processed/crop_recommendation.csv`
-- **Date Acquired**: 2026-08-26
-- **License**: Open Access / Public Educational Research
+- **Authoritative Sources**:
+  1. **ICAR (Indian Council of Agricultural Research)**: Handbook of Agriculture (6th Edition) & Crop Production Guidelines.
+  2. **TNAU (Tamil Nadu Agricultural University) Agritech Portal**: Crop Production Guides (Cereals, Pulses, Oilseeds, Commercial, and Horticulture Crops).
+  3. **ICAR-CRIDA (Central Research Institute for Dryland Agriculture)**: Climate & Soil Biophysical Requirements of Rainfed Crops.
+  4. **IMD (India Meteorological Department)**: Long Period Average (LPA) Annual Rainfall Norms (1971–2020).
+- **Date Updated**: 2026-10-05
+- **License**: Open Access / Public Educational & Academic Research
 
 ## 2. Dataset Schema
-- **Total Records**: 2,200 observations
+- **Total Records**: 3,600 observations (120 observations per class)
 - **Total Features**: 7 numerical input features + 1 categorical target label
 - **Input Features**:
-  1. `N` (Integer/Float): Nitrogen level in soil (ratio / kg/ha)
-  2. `P` (Integer/Float): Phosphorus level in soil (ratio / kg/ha)
-  3. `K` (Integer/Float): Potassium level in soil (ratio / kg/ha)
-  4. `temperature` (Float): Environmental temperature in degrees Celsius (°C)
-  5. `humidity` (Float): Relative environmental humidity percentage (%)
-  6. `ph` (Float): Soil pH value (0.0 to 14.0 scale)
-  7. `rainfall` (Float): Precipitation/rainfall level in millimeters (mm)
-- **Target Feature**:
-  - `label` (String): Crop name classification (22 classes, 100 observations per class: rice, maize, chickpea, kidneybeans, pigeonpeas, mothbeans, mungbean, blackgram, lentil, pomegranate, banana, mango, grapes, watermelon, muskmelon, apple, orange, papaya, coconut, cotton, jute, coffee).
+  1. `N` (Float, kg/ha): Available soil Nitrogen content (0 – 200 kg/ha)
+  2. `P` (Float, kg/ha): Available soil Phosphorus ($P_2O_5$) content (0 – 200 kg/ha)
+  3. `K` (Float, kg/ha): Available soil Potassium ($K_2O$) content (0 – 250 kg/ha)
+  4. `temperature` (Float, °C): Ambient mean temperature during cultivation period (8.0 – 45.0 °C)
+  5. `humidity` (Float, %): Relative atmospheric humidity (15.0 – 95.0 %)
+  6. `ph` (Float): Soil reaction index (pH: 4.5 – 9.0)
+  7. `rainfall` (Float, mm): **Annual / Full Crop-Cycle Cumulative Precipitation** (250 – 3,500 mm).
+     *Note: Rainfall is strictly aligned with IMD Normal Annual Rainfall definitions to ensure 100% parity between training distributions and live weather/inference services.*
+- **Target Classes (30 Crop Species)**:
+  - **Cereals & Millets**: `rice`, `wheat`, `maize`, `sorghum`, `pearl_millet`
+  - **Pulses**: `chickpea`, `pigeonpeas`, `mungbean`, `blackgram`, `lentil`, `kidneybeans`, `mothbeans`
+  - **Oilseeds & Cash Crops**: `soybean`, `cotton`, `groundnut`, `mustard`, `sunflower`, `sugarcane`, `jute`, `coffee`
+  - **Horticultural & Commercial Fruits**: `banana`, `mango`, `grapes`, `apple`, `orange`, `papaya`, `coconut`, `pomegranate`, `watermelon`, `muskmelon`
 
 ## 3. Directory Layout
-- `raw/crop_recommendation.csv`: Immutable original raw dataset.
-- `processed/`: Validated, encoded, and preprocessed datasets for model consumption.
+- `raw/crop_recommendation.csv`: Master raw dataset (3,600 rows $\times$ 8 columns).
+- `processed/crop_recommendation_processed.csv`: Validated and preprocessed dataset with encoded integer labels.
 
-## 4. Known Characteristics & Limitations
-- Perfectly balanced multiclass dataset with 100 samples per crop class.
-- Zero missing values in the raw dataset.
-- Soil and weather values reflect optimal/cultivation conditions; extreme drought or soil degradation scenarios require out-of-distribution handling.
+## 4. Quality & Statistical Integrity
+- **Duplicate Records**: 0 exact duplicates.
+- **Class Balance**: Perfectly balanced across 30 crops (120 samples each = 3.33% per class).
+- **Missing / NaN Values**: 0 missing values.
+- **Distribution Integrity**: Truncated Gaussian sampling bounded strictly within verified ICAR agronomic thresholds.
+
+## 5. Scientific Limitations & Academic Scope
+- **Domain-Synthesized Benchmark**: The 3,600-record dataset is domain-synthesized.
+- **Benchmark Evaluation**: 81.85% Top-1 and 99.63% Top-5 are benchmark results, NOT real-world field accuracy.
+- **Tabular Sequence Representation**: The BiLSTM processes seven ordered tabular agronomic features, not a true chronological time series.
+- **Perennial Scope**: Perennial crop suitability is only macro-climatic/biophysical screening and requires additional field validation.
+- **Academic Statement**: Subsystem 3A is technically validated against its domain-synthesized benchmark dataset and supported by rule-based agronomic evidence. Real-world field validation remains future work.

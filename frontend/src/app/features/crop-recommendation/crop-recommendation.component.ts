@@ -1,10 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { CropService } from '../../core/services/crop.service';
+import { WeatherService } from '../../core/services/weather.service';
 import { CropRecommendationResponse, RankedCropProbability } from '../../core/models/crop.model';
+import { WeatherData } from '../../core/models/weather.model';
+import { STATE_DISTRICTS } from '../../core/constants/locations.constant';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 
 interface PresetOption {
@@ -38,89 +41,105 @@ interface CropAgroInfo {
   templateUrl: './crop-recommendation.component.html',
   styleUrl: './crop-recommendation.component.css'
 })
-export class CropRecommendationComponent {
+export class CropRecommendationComponent implements OnInit {
   private fb = inject(FormBuilder);
   private cropService = inject(CropService);
+  private weatherService = inject(WeatherService);
 
   public isLoading = signal<boolean>(false);
+  public isWeatherLoading = signal<boolean>(false);
+  public weatherError = signal<string | null>(null);
+  public weatherData = signal<WeatherData | null>(null);
   public errorMessage = signal<string | null>(null);
   public result = signal<CropRecommendationResponse | null>(null);
 
+  public readonly states: string[] = Object.keys(STATE_DISTRICTS).sort();
+  public availableDistricts = signal<string[]>([]);
+
   public readonly cropCatalog: Record<string, CropAgroInfo> = {
-    rice: { type: 'Cereal Grain', season: 'Kharif', soil: 'Clayey / Alluvial Loam', waterNeed: 'High (150-300mm)' },
-    maize: { type: 'Cereal / Fodder', season: 'Kharif / Rabi', soil: 'Well-drained Loam', waterNeed: 'Moderate (60-100mm)' },
-    chickpea: { type: 'Pulse / Legume', season: 'Rabi', soil: 'Sandy Loam / Black Soil', waterNeed: 'Low (60-90mm)' },
-    kidneybeans: { type: 'Pulse / Legume', season: 'Kharif / Rabi', soil: 'Rich Organic Loam', waterNeed: 'Moderate (100-150mm)' },
-    pigeonpeas: { type: 'Pulse / Legume', season: 'Kharif', soil: 'Deep Loam / Vertisol', waterNeed: 'Low-Moderate (90-150mm)' },
-    mothbeans: { type: 'Arid Pulse', season: 'Kharif', soil: 'Sandy / Arid Loam', waterNeed: 'Very Low (30-60mm)' },
-    mungbean: { type: 'Pulse / Legume', season: 'Kharif / Zaid', soil: 'Fertile Loam', waterNeed: 'Low-Moderate (40-60mm)' },
-    blackgram: { type: 'Pulse / Legume', season: 'Kharif / Rabi', soil: 'Loamy / Clayey Soil', waterNeed: 'Moderate (60-80mm)' },
-    lentil: { type: 'Pulse / Legume', season: 'Rabi', soil: 'Light Loam / Clay Loam', waterNeed: 'Low (40-60mm)' },
-    pomegranate: { type: 'Horticulture Fruit', season: 'Perennial', soil: 'Deep Sandy Loam', waterNeed: 'Moderate (100-120mm)' },
-    banana: { type: 'Tropical Fruit', season: 'Perennial', soil: 'Rich Well-drained Loam', waterNeed: 'High (150-250mm)' },
-    mango: { type: 'Tropical Fruit', season: 'Perennial', soil: 'Alluvial Loam', waterNeed: 'Moderate (80-100mm)' },
-    grapes: { type: 'Horticulture Fruit', season: 'Perennial', soil: 'Sandy Loam / Calcareous', waterNeed: 'Moderate (60-80mm)' },
-    watermelon: { type: 'Cucurbit / Fruit', season: 'Zaid (Summer)', soil: 'Sandy Riverbed Loam', waterNeed: 'Low-Moderate (40-60mm)' },
-    muskmelon: { type: 'Cucurbit / Fruit', season: 'Zaid (Summer)', soil: 'Light Sandy Loam', waterNeed: 'Low (20-30mm)' },
-    apple: { type: 'Temperate Fruit', season: 'Perennial', soil: 'Mountain Loam', waterNeed: 'Moderate (100-130mm)' },
-    orange: { type: 'Citrus Fruit', season: 'Perennial', soil: 'Well-drained Sandy Loam', waterNeed: 'Moderate (100-120mm)' },
-    papaya: { type: 'Tropical Fruit', season: 'Perennial', soil: 'Rich Organic Loam', waterNeed: 'High (140-250mm)' },
-    coconut: { type: 'Plantation Crop', season: 'Perennial', soil: 'Coastal Alluvial / Sandy', waterNeed: 'High (150-250mm)' },
-    cotton: { type: 'Fiber / Cash Crop', season: 'Kharif', soil: 'Deep Black Cotton (Vertisol)', waterNeed: 'Moderate (60-100mm)' },
-    jute: { type: 'Fiber Crop', season: 'Kharif', soil: 'Alluvial Floodplain', waterNeed: 'High (150-200mm)' },
-    coffee: { type: 'Plantation Cash Crop', season: 'Perennial', soil: 'Humus-rich Forest Loam', waterNeed: 'High (150-200mm)' }
+    rice: { type: 'Cereal Grain', season: 'Kharif', soil: 'Clayey / Alluvial Loam', waterNeed: 'High (1000-2500 mm/yr)' },
+    wheat: { type: 'Rabi Cereal', season: 'Rabi', soil: 'Well-drained Fertile Loam', waterNeed: 'Low-Moderate (350-750 mm/yr)' },
+    maize: { type: 'Cereal / Fodder', season: 'Kharif / Rabi', soil: 'Well-drained Loam', waterNeed: 'Moderate (500-1000 mm/yr)' },
+    soybean: { type: 'Oilseed / Legume', season: 'Kharif', soil: 'Fertile Loam / Black Soil', waterNeed: 'Moderate (600-1100 mm/yr)' },
+    cotton: { type: 'Fiber / Cash Crop', season: 'Kharif', soil: 'Deep Black Cotton (Vertisol)', waterNeed: 'Moderate (600-1100 mm/yr)' },
+    chickpea: { type: 'Rabi Pulse', season: 'Rabi', soil: 'Sandy Loam / Black Soil', waterNeed: 'Low (350-700 mm/yr)' },
+    pigeonpeas: { type: 'Pulse / Legume', season: 'Kharif', soil: 'Deep Loam / Vertisol', waterNeed: 'Moderate (600-1000 mm/yr)' },
+    sorghum: { type: 'Coarse Millet (Jowar)', season: 'Kharif / Rabi', soil: 'Medium to Heavy Loam', waterNeed: 'Low-Moderate (400-800 mm/yr)' },
+    pearl_millet: { type: 'Arid Millet (Bajra)', season: 'Kharif', soil: 'Light Sandy Loam', waterNeed: 'Low (300-650 mm/yr)' },
+    groundnut: { type: 'Oilseed / Legume', season: 'Kharif / Summer', soil: 'Sandy Loam / Red Soil', waterNeed: 'Moderate (500-950 mm/yr)' },
+    mustard: { type: 'Rabi Oilseed', season: 'Rabi', soil: 'Alluvial Loam / Sandy Loam', waterNeed: 'Low-Moderate (350-650 mm/yr)' },
+    sunflower: { type: 'Oilseed Crop', season: 'Kharif / Rabi', soil: 'Well-drained Fertile Loam', waterNeed: 'Moderate (450-850 mm/yr)' },
+    sugarcane: { type: 'Commercial Cash Crop', season: 'Perennial (12-18m)', soil: 'Deep Rich Loam / Alluvium', waterNeed: 'High (1200-2500 mm/yr)' },
+    kidneybeans: { type: 'Pulse / Legume', season: 'Kharif / Rabi', soil: 'Rich Organic Loam', waterNeed: 'Moderate (500-1200 mm/yr)' },
+    mothbeans: { type: 'Arid Pulse', season: 'Kharif', soil: 'Sandy / Arid Loam', waterNeed: 'Very Low (250-600 mm/yr)' },
+    mungbean: { type: 'Pulse / Legume', season: 'Kharif / Zaid', soil: 'Fertile Loam', waterNeed: 'Low-Moderate (350-850 mm/yr)' },
+    blackgram: { type: 'Pulse / Legume', season: 'Kharif / Rabi', soil: 'Loamy / Clayey Soil', waterNeed: 'Moderate (400-900 mm/yr)' },
+    lentil: { type: 'Rabi Pulse', season: 'Rabi', soil: 'Light Loam / Clay Loam', waterNeed: 'Low (300-700 mm/yr)' },
+    jute: { type: 'Fiber Crop', season: 'Kharif', soil: 'Alluvial Floodplain', waterNeed: 'High (1000-2100 mm/yr)' },
+    coffee: { type: 'Plantation Cash Crop', season: 'Perennial', soil: 'Humus-rich Forest Loam', waterNeed: 'High (1200-2600 mm/yr)' },
+    banana: { type: 'Tropical Fruit', season: 'Perennial', soil: 'Rich Well-drained Loam', waterNeed: 'High (1000-2200 mm/yr)' },
+    mango: { type: 'Tropical Fruit', season: 'Perennial', soil: 'Alluvial Loam', waterNeed: 'Moderate (700-1800 mm/yr)' },
+    grapes: { type: 'Horticulture Fruit', season: 'Perennial', soil: 'Sandy Loam / Calcareous', waterNeed: 'Moderate (500-950 mm/yr)' },
+    apple: { type: 'Temperate Fruit', season: 'Perennial', soil: 'Mountain Loam', waterNeed: 'Moderate (750-1500 mm/yr)' },
+    orange: { type: 'Citrus Fruit', season: 'Perennial', soil: 'Well-drained Sandy Loam', waterNeed: 'Moderate (600-1250 mm/yr)' },
+    papaya: { type: 'Tropical Fruit', season: 'Perennial', soil: 'Rich Organic Loam', waterNeed: 'High (900-1950 mm/yr)' },
+    coconut: { type: 'Plantation Crop', season: 'Perennial', soil: 'Coastal Alluvial / Sandy', waterNeed: 'High (1200-2600 mm/yr)' },
+    pomegranate: { type: 'Arid Fruit', season: 'Perennial', soil: 'Deep Sandy Loam', waterNeed: 'Low-Moderate (400-800 mm/yr)' },
+    watermelon: { type: 'Cucurbit / Fruit', season: 'Zaid (Summer)', soil: 'Sandy Riverbed Loam', waterNeed: 'Low-Moderate (350-750 mm/yr)' },
+    muskmelon: { type: 'Cucurbit / Fruit', season: 'Zaid (Summer)', soil: 'Light Sandy Loam', waterNeed: 'Low (300-700 mm/yr)' }
   };
 
   public presets: PresetOption[] = [
     {
-      name: 'Vidarbha Black Soil (Cotton)',
-      region: 'Maharashtra (Vidarbha / Deccan)',
-      description: 'High nitrogen, moderate phosphorus, low potassium vertisol suited for cash fiber crops',
-      values: { N: 117, P: 46, K: 19, temperature: 24.0, humidity: 79.8, ph: 6.9, rainfall: 90.8, state: 'Maharashtra', district: 'Nagpur' }
+      name: 'Vidarbha Soybean/Cotton',
+      region: 'Maharashtra (Nagpur / Vidarbha)',
+      description: 'Fertile black soil with moderate NPK, warm climate, and ~1050 mm annual rainfall',
+      values: { N: 35, P: 70, K: 45, temperature: 26.0, humidity: 68.0, ph: 6.7, rainfall: 1050.0, state: 'Maharashtra', district: 'Nagpur' }
     },
     {
-      name: 'Gangetic Alluvial (Rice)',
-      region: 'West Bengal / Bihar / UP',
-      description: 'High moisture, warm temperature and high seasonal monsoon rainfall',
-      values: { N: 90, P: 42, K: 43, temperature: 20.9, humidity: 82.0, ph: 6.5, rainfall: 202.9, state: 'West Bengal', district: 'Burdwan' }
+      name: 'Punjab Fertile Alluvium (Wheat)',
+      region: 'Punjab (Ludhiana / Malwa)',
+      description: 'High nitrogen, cool rabi temperature, moderate humidity and ~650 mm annual rainfall',
+      values: { N: 110, P: 55, K: 38, temperature: 18.5, humidity: 55.0, ph: 6.8, rainfall: 650.0, state: 'Punjab', district: 'Ludhiana' }
     },
     {
-      name: 'Plateau Semi-Arid (Maize)',
-      region: 'Karnataka / Telangana / MP',
-      description: 'Warm temperate loamy soil with balanced moderate NPK and medium rainfall',
-      values: { N: 71, P: 54, K: 20, temperature: 22.6, humidity: 65.4, ph: 5.7, rainfall: 82.3, state: 'Karnataka', district: 'Dharwad' }
+      name: 'Bengal Floodplain (Rice)',
+      region: 'West Bengal (Bardhaman / Gangetic)',
+      description: 'High moisture, warm temperature and high annual monsoon rainfall (>1600 mm)',
+      values: { N: 80, P: 45, K: 40, temperature: 25.0, humidity: 82.0, ph: 6.3, rainfall: 1600.0, state: 'West Bengal', district: 'Bardhaman' }
     },
     {
-      name: 'Himalayan Highlands (Apple)',
-      region: 'Himachal Pradesh / J&K',
-      description: 'High potassium and phosphorus cold temperate mountain loam',
-      values: { N: 20, P: 134, K: 199, temperature: 22.7, humidity: 92.3, ph: 5.9, rainfall: 112.7, state: 'Himachal Pradesh', district: 'Shimla' }
+      name: 'Rajasthan Arid (Pearl Millet/Bajra)',
+      region: 'Rajasthan (Jodhpur / Marwar)',
+      description: 'Hot semi-arid climate, low nitrogen/phosphorus, alkaline soil and low annual rainfall (~450 mm)',
+      values: { N: 60, P: 30, K: 25, temperature: 31.0, humidity: 42.0, ph: 7.6, rainfall: 450.0, state: 'Rajasthan', district: 'Jodhpur' }
     },
     {
-      name: 'Dryland Rabi Pulse (Chickpea)',
-      region: 'Rajasthan / MP / Maharashtra',
-      description: 'Cool dry climate with moderate potassium and alkaline soil pH',
-      values: { N: 40, P: 67, K: 79, temperature: 18.8, humidity: 16.8, ph: 7.3, rainfall: 80.1, state: 'Madhya Pradesh', district: 'Indore' }
+      name: 'Maharashtra Sugarcane (Kolhapur)',
+      region: 'Maharashtra (Kolhapur / Western)',
+      description: 'High nitrogen and potassium, warm temperature, high annual precipitation (>1600 mm)',
+      values: { N: 140, P: 60, K: 90, temperature: 28.0, humidity: 72.0, ph: 6.8, rainfall: 1650.0, state: 'Maharashtra', district: 'Kolhapur' }
     },
     {
-      name: 'Western Ghats (Coffee)',
-      region: 'Karnataka (Coorg) / Kerala',
-      description: 'Subtropical highland humus-rich forest loam with high seasonal precipitation',
-      values: { N: 101, P: 29, K: 30, temperature: 26.5, humidity: 58.1, ph: 6.8, rainfall: 158.1, state: 'Karnataka', district: 'Kodagu' }
+      name: 'Madhya Pradesh Pulse (Chickpea)',
+      region: 'Madhya Pradesh (Indore / Malwa)',
+      description: 'Cool rabi season, balanced phosphorus, alkaline soil and ~600 mm annual rainfall',
+      values: { N: 32, P: 65, K: 40, temperature: 20.0, humidity: 35.0, ph: 7.3, rainfall: 600.0, state: 'Madhya Pradesh', district: 'Indore' }
     }
   ];
 
   public cropForm = this.fb.group({
     country: ['India'],
-    state: [''],
-    district: [''],
-    N: [90, [Validators.required, Validators.min(0), Validators.max(200)]],
-    P: [42, [Validators.required, Validators.min(0), Validators.max(200)]],
-    K: [43, [Validators.required, Validators.min(0), Validators.max(250)]],
-    temperature: [20.9, [Validators.required, Validators.min(0), Validators.max(60)]],
-    humidity: [82.0, [Validators.required, Validators.min(0), Validators.max(100)]],
-    ph: [6.5, [Validators.required, Validators.min(3.0), Validators.max(10.0)]],
-    rainfall: [202.9, [Validators.required, Validators.min(0), Validators.max(500)]]
+    state: ['Maharashtra', Validators.required],
+    district: ['Nagpur', Validators.required],
+    season: ['Kharif', Validators.required],
+    N: [35, [Validators.required, Validators.min(0), Validators.max(200)]],
+    P: [70, [Validators.required, Validators.min(0), Validators.max(200)]],
+    K: [45, [Validators.required, Validators.min(0), Validators.max(250)]],
+    temperature: [26.0 as number | null, [Validators.required, Validators.min(0), Validators.max(60)]],
+    humidity: [68.0 as number | null, [Validators.required, Validators.min(0), Validators.max(100)]],
+    ph: [6.7, [Validators.required, Validators.min(3.0), Validators.max(10.0)]],
+    rainfall: [1050.0 as number | null, [Validators.required, Validators.min(0), Validators.max(3500)]]
   });
 
   // Top 5 Probabilities Horizontal Bar Chart
@@ -145,7 +164,7 @@ export class CropRecommendationComponent {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (context) => ` Suitability Probability: ${(Number(context.raw) * 100).toFixed(2)}%`
+          label: (context) => ` Model Confidence: ${(Number(context.raw) * 100).toFixed(2)}%`
         },
         backgroundColor: '#0f172a',
         borderColor: '#334155',
@@ -174,7 +193,7 @@ export class CropRecommendationComponent {
   // Radar Chart for Normalized Soil Profile
   public radarChartType = 'radar' as const;
   public radarChartData: ChartData<'radar'> = {
-    labels: ['Nitrogen (N)', 'Phosphorus (P)', 'Potassium (K)', 'Temperature', 'Humidity', 'pH', 'Rainfall'],
+    labels: ['Nitrogen (N)', 'Phosphorus (P)', 'Potassium (K)', 'Temperature', 'Humidity', 'pH', 'Annual Rainfall'],
     datasets: [
       {
         data: [],
@@ -211,34 +230,142 @@ export class CropRecommendationComponent {
     }
   };
 
-  public applyPreset(preset: PresetOption): void {
+  public ngOnInit(): void {
+    const initialState = this.cropForm.get('state')?.value || 'Maharashtra';
+    if (STATE_DISTRICTS[initialState]) {
+      this.availableDistricts.set(STATE_DISTRICTS[initialState]);
+    }
+    const initialDistrict = this.cropForm.get('district')?.value || 'Nagpur';
+    this.weatherData.set({
+      state: initialState,
+      district: initialDistrict,
+      location_name: `${initialDistrict}, ${initialState}, India`,
+      latitude: 21.1458,
+      longitude: 79.0882,
+      temperature: 26.0,
+      humidity: 68.0,
+      annual_rainfall: 1050.0,
+      rainfall: 1050.0,
+      weather_condition: 'Agro-Climatic Normal Profile',
+      source: 'IMD LPA District Normal Rainfall (1050 mm)',
+      fetched_at: new Date().toISOString()
+    });
+  }
+
+  public onStateChange(selectedState: string): void {
+    // 1. Clear previous district and weather values
     this.cropForm.patchValue({
+      state: selectedState,
+      district: '',
+      temperature: null,
+      humidity: null,
+      rainfall: null
+    });
+    this.weatherData.set(null);
+    this.weatherError.set(null);
+
+    // 2. Filter districts to ONLY districts belonging to selected state
+    if (selectedState && STATE_DISTRICTS[selectedState]) {
+      this.availableDistricts.set(STATE_DISTRICTS[selectedState]);
+    } else {
+      this.availableDistricts.set([]);
+    }
+  }
+
+  public onDistrictChange(selectedDistrict: string): void {
+    this.cropForm.patchValue({ district: selectedDistrict });
+    const currentState = this.cropForm.get('state')?.value;
+    if (currentState && selectedDistrict) {
+      this.fetchWeather(currentState, selectedDistrict);
+    }
+  }
+
+  public fetchWeather(state: string, district: string): void {
+    if (!state || !district) return;
+
+    this.isWeatherLoading.set(true);
+    this.weatherError.set(null);
+
+    this.weatherService.getWeather(state, district).subscribe({
+      next: (response) => {
+        this.isWeatherLoading.set(false);
+        if (response.success && response.data) {
+          this.weatherData.set(response.data);
+          this.cropForm.patchValue({
+            temperature: response.data.temperature,
+            humidity: response.data.humidity,
+            rainfall: response.data.annual_rainfall
+          });
+        } else {
+          this.weatherError.set(response.error?.message || 'Unable to fetch weather data for this location. Please try again.');
+        }
+      },
+      error: () => {
+        this.isWeatherLoading.set(false);
+        this.weatherError.set('Unable to fetch weather data for this location. Please try again.');
+      }
+    });
+  }
+
+  public retryWeather(): void {
+    const currentState = this.cropForm.get('state')?.value;
+    const currentDistrict = this.cropForm.get('district')?.value;
+    if (currentState && currentDistrict) {
+      this.fetchWeather(currentState, currentDistrict);
+    }
+  }
+
+  public applyPreset(preset: PresetOption): void {
+    if (preset.values.state) {
+      this.availableDistricts.set(STATE_DISTRICTS[preset.values.state] || []);
+    }
+
+    this.cropForm.patchValue({
+      state: preset.values.state || '',
+      district: preset.values.district || '',
       N: preset.values.N,
       P: preset.values.P,
       K: preset.values.K,
       temperature: preset.values.temperature,
       humidity: preset.values.humidity,
       ph: preset.values.ph,
-      rainfall: preset.values.rainfall,
-      state: preset.values.state || '',
-      district: preset.values.district || ''
+      rainfall: preset.values.rainfall
     });
+
+    this.weatherError.set(null);
+    if (preset.values.state && preset.values.district) {
+      this.weatherData.set({
+        state: preset.values.state,
+        district: preset.values.district,
+        location_name: `${preset.values.district}, ${preset.values.state}, India`,
+        latitude: 0,
+        longitude: 0,
+        temperature: preset.values.temperature,
+        humidity: preset.values.humidity,
+        annual_rainfall: preset.values.rainfall,
+        rainfall: preset.values.rainfall,
+        weather_condition: 'Agro-Climatic Preset Profile',
+        source: 'Regional Preset Benchmark',
+        fetched_at: new Date().toISOString()
+      });
+    }
   }
 
-  public getSuitabilityBadge(index: number, prob: number): { label: string; class: string } {
-    if (index === 0 && prob >= 0.70) {
-      return { label: 'Primary Optimal Match', class: 'badge-optimal' };
-    } else if (prob >= 0.30) {
-      return { label: 'High Suitability', class: 'badge-high' };
-    } else if (prob >= 0.10) {
-      return { label: 'Moderate Suitability', class: 'badge-moderate' };
+  public getSuitabilityBadge(item: RankedCropProbability): { label: string; class: string } {
+    const level = item.suitability || '';
+    if (level === 'Highly Suitable') {
+      return { label: 'Highly Suitable', class: 'badge-optimal' };
+    } else if (level === 'Suitable') {
+      return { label: 'Suitable', class: 'badge-high' };
+    } else if (level === 'Moderately Suitable') {
+      return { label: 'Moderately Suitable', class: 'badge-moderate' };
     } else {
-      return { label: 'Viable Secondary Crop', class: 'badge-low' };
+      return { label: 'Marginally Suitable', class: 'badge-low' };
     }
   }
 
   public getCropInfo(cropName: string): CropAgroInfo {
-    const key = cropName.toLowerCase().trim();
+    const key = cropName.toLowerCase().trim().replace(/ /g, '_');
     return this.cropCatalog[key] || {
       type: 'Agricultural Crop',
       season: 'Kharif / Rabi',
@@ -248,7 +375,7 @@ export class CropRecommendationComponent {
   }
 
   public onSubmit(): void {
-    if (this.cropForm.invalid) {
+    if (this.cropForm.invalid || this.isWeatherLoading()) {
       this.cropForm.markAllAsTouched();
       return;
     }
@@ -268,7 +395,8 @@ export class CropRecommendationComponent {
       top_k: 5,
       country: formVal.country || 'India',
       state: formVal.state || undefined,
-      district: formVal.district || undefined
+      district: formVal.district || undefined,
+      season: formVal.season || undefined
     };
 
     this.cropService.recommendCrop(req).subscribe({
@@ -292,8 +420,8 @@ export class CropRecommendationComponent {
 
   private updateCharts(res: CropRecommendationResponse, inputs: any): void {
     const top = res.recommendations || res.top_recommendations || [];
-    const labels = top.map((t) => t.crop.charAt(0).toUpperCase() + t.crop.slice(1));
-    const probs = top.map((t) => t.probability);
+    const labels = top.map((t) => t.crop.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+    const probs = top.map((t) => (t.model_score !== undefined ? t.model_score : t.probability));
 
     this.barChartData = {
       labels,
@@ -307,13 +435,13 @@ export class CropRecommendationComponent {
       ]
     };
 
-    const normN = Math.min(100, Math.max(0, (inputs.N / 140) * 100));
-    const normP = Math.min(100, Math.max(0, (inputs.P / 145) * 100));
-    const normK = Math.min(100, Math.max(0, (inputs.K / 205) * 100));
-    const normTemp = Math.min(100, Math.max(0, ((inputs.temperature - 8.8) / (43.7 - 8.8)) * 100));
-    const normHum = Math.min(100, Math.max(0, ((inputs.humidity - 14.3) / (100 - 14.3)) * 100));
-    const normPh = Math.min(100, Math.max(0, ((inputs.ph - 3.5) / (9.94 - 3.5)) * 100));
-    const normRain = Math.min(100, Math.max(0, ((inputs.rainfall - 20) / (298.6 - 20)) * 100));
+    const normN = Math.min(100, Math.max(0, (inputs.N / 180) * 100));
+    const normP = Math.min(100, Math.max(0, (inputs.P / 160) * 100));
+    const normK = Math.min(100, Math.max(0, (inputs.K / 225) * 100));
+    const normTemp = Math.min(100, Math.max(0, ((inputs.temperature - 4.0) / (45.0 - 4.0)) * 100));
+    const normHum = Math.min(100, Math.max(0, ((inputs.humidity - 15.0) / (100.0 - 15.0)) * 100));
+    const normPh = Math.min(100, Math.max(0, ((inputs.ph - 4.5) / (9.0 - 4.5)) * 100));
+    const normRain = Math.min(100, Math.max(0, ((inputs.rainfall - 200) / (3000 - 200)) * 100));
 
     this.radarChartData = {
       labels: ['Nitrogen (N)', 'Phosphorus (P)', 'Potassium (K)', 'Temperature', 'Humidity', 'pH', 'Rainfall'],
@@ -331,4 +459,3 @@ export class CropRecommendationComponent {
     };
   }
 }
-

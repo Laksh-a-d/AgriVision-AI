@@ -98,7 +98,7 @@ def validate_crop_inputs(
             raise ValueError(f"Input '{param_name}' cannot be NaN or Infinite.")
 
         # Range bounds verification
-        bounds = RANGE_CONSTRAINTS.get(param_name, {"min": 0.0, "max": 1000.0})
+        bounds = RANGE_CONSTRAINTS.get(param_name, {"min": 0.0, "max": 3500.0})
         min_bound = bounds["min"]
         max_bound = bounds["max"]
 
@@ -113,6 +113,56 @@ def validate_crop_inputs(
     return validated
 
 
+def predict_all_crop_probabilities(
+    n: Union[int, float],
+    p: Union[int, float],
+    k: Union[int, float],
+    temperature: Union[int, float],
+    humidity: Union[int, float],
+    ph: Union[int, float],
+    rainfall: Union[int, float]
+) -> List[Dict[str, Any]]:
+    """
+    Runs LSTM inference and returns unmanipulated softmax probabilities for all crop classes.
+    """
+    clean_inputs = validate_crop_inputs(n, p, k, temperature, humidity, ph, rainfall)
+    artifacts = load_inference_artifacts()
+    model = artifacts["model"]
+    scaler = artifacts["scaler"]
+    class_names = artifacts["class_names"]
+
+    # Transform features (1, 7) using pre-fitted StandardScaler
+    feature_vector = np.array([[
+        clean_inputs["N"],
+        clean_inputs["P"],
+        clean_inputs["K"],
+        clean_inputs["temperature"],
+        clean_inputs["humidity"],
+        clean_inputs["ph"],
+        clean_inputs["rainfall"]
+    ]])
+    scaled_vector = scaler.transform(feature_vector)
+
+    # Reshape to LSTM sequence format (1, timesteps=7, features=1)
+    seq_input = reshape_tabular_to_sequence(scaled_vector)
+
+    # Run neural inference
+    prob_dist = model.predict(seq_input, verbose=0)[0]
+    total_prob = float(np.sum(prob_dist))
+    if not (0.98 <= total_prob <= 1.02):
+        raise ValueError(f"Inference output is not a valid probability distribution (sum={total_prob}).")
+
+    all_preds = []
+    for idx, prob in enumerate(prob_dist):
+        crop_name = class_names[idx] if class_names else f"crop_{idx}"
+        all_preds.append({
+            "crop": crop_name,
+            "probability": round(float(prob), 4)
+        })
+
+    return all_preds
+
+
 def predict_crop_recommendation(
     n: Union[int, float],
     p: Union[int, float],
@@ -124,85 +174,24 @@ def predict_crop_recommendation(
     top_k: int = 5
 ) -> List[Dict[str, Any]]:
     """
-    Generates top-k crop recommendations using the trained LSTM neural network.
-    
-    Parameters:
-        n: Nitrogen ratio in soil (0 - 200)
-        p: Phosphorus ratio in soil (0 - 200)
-        k: Potassium ratio in soil (0 - 250)
-        temperature: Temperature in Celsius (0 - 60)
-        humidity: Relative humidity percentage (0 - 100)
-        ph: Soil pH (3.0 - 10.0)
-        rainfall: Rainfall in mm (0 - 500)
-        top_k: Number of ranked crops to return (default: 5)
-        
-    Returns:
-        List of dictionaries sorted by descending probability:
-        [
-            {"crop": "rice", "probability": 0.9412},
-            {"crop": "jute", "probability": 0.0321},
-            ...
-        ]
+    Generates top-k crop recommendations sorted strictly by raw model probability.
     """
-    # 1. Validate inputs
-    clean_inputs = validate_crop_inputs(n, p, k, temperature, humidity, ph, rainfall)
-    
-    # 2. Load inference artifacts
-    artifacts = load_inference_artifacts()
-    model = artifacts["model"]
-    scaler = artifacts["scaler"]
-    class_names = artifacts["class_names"]
-    
-    # 3. Transform features (1, 7) using pre-fitted scaler (no data leakage)
-    feature_vector = np.array([[
-        clean_inputs["N"],
-        clean_inputs["P"],
-        clean_inputs["K"],
-        clean_inputs["temperature"],
-        clean_inputs["humidity"],
-        clean_inputs["ph"],
-        clean_inputs["rainfall"]
-    ]])
-    scaled_vector = scaler.transform(feature_vector)
-    
-    # 4. Reshape to LSTM sequence format (1, timesteps=7, features=1)
-    seq_input = reshape_tabular_to_sequence(scaled_vector)
-    
-    # 5. Run inference
-    prob_dist = model.predict(seq_input, verbose=0)[0]
-    
-    # Verify probability distribution sum is approximately 1.0
-    total_prob = float(np.sum(prob_dist))
-    if not (0.98 <= total_prob <= 1.02):
-        raise ValueError(f"Inference output is not a valid probability distribution (sum={total_prob}).")
-        
-    # 6. Rank top-k predictions
-    top_indices = np.argsort(prob_dist)[::-1][:top_k]
-    
-    recommendations = []
-    for idx in top_indices:
-        crop_name = class_names[idx] if class_names else f"crop_{idx}"
-        prob = float(prob_dist[idx])
-        recommendations.append({
-            "crop": crop_name,
-            "probability": round(prob, 4)
-        })
-        
-    return recommendations
+    all_preds = predict_all_crop_probabilities(n, p, k, temperature, humidity, ph, rainfall)
+    all_preds.sort(key=lambda x: x["probability"], reverse=True)
+    return all_preds[:top_k]
 
 
 if __name__ == "__main__":
-    # Smoke test sample prediction
     sample_input = {
-        "n": 90,
-        "p": 42,
-        "k": 43,
-        "temperature": 20.87,
-        "humidity": 82.00,
-        "ph": 6.50,
-        "rainfall": 202.93
+        "n": 35,
+        "p": 70,
+        "k": 45,
+        "temperature": 26.0,
+        "humidity": 68.0,
+        "ph": 6.7,
+        "rainfall": 850.0
     }
-    print(f"Sample Input: {sample_input}")
+    print(f"Sample Input (Soybean conditions): {sample_input}")
     preds = predict_crop_recommendation(**sample_input, top_k=5)
     print("\nTop 5 Crop Recommendations:")
     for p in preds:
